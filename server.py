@@ -5,38 +5,14 @@ from services import actions, status_code
 from socket import *
 import logging.config
 from select import *
-import subprocess
+from descriptors import HostPortDescriptor
+from metaclass import DocMeta
 
 
-class ServerDescriptor:
 
-    def __set__(self, instance, value):
-
-        if self.new_attr == 'listen_ip':
-            proc = subprocess.call(f'ping -W 500 -c 1 {value}',
-                                   shell=True, stdout=open("/dev/null"))
-            if proc == 0:
-                instance.logger.info(f'Успешное подключение на сервере: {value}')
-                instance.__dict__[self.new_attr] = value
-            else:
-                instance.logger.error(f'Указан не доступный listen_ip', exc_info=True)
-                raise ValueError('Указан не доступный listen_ip')
-
-        if self.new_attr == 'listen_port':
-            if not 65535 >= value >= 1024:
-                instance.logger.error(f'Порт должен быть указан в пределах от 1024 до 65535', exc_info=True)
-                raise ValueError('Порт должен быть указан в пределах от 1024 до 65535')
-            else:
-                instance.__dict__[self.new_attr] = value
-                instance.logger.info(f'Успешное подключение на порту: {value}')
-
-    def __set_name__(self, owner, name):
-        self.new_attr = name
-
-
-class Server(Proto):
-    listen_ip = ServerDescriptor()
-    listen_port = ServerDescriptor()
+class Server(Proto, metaclass=DocMeta):
+    listen_ip = HostPortDescriptor()
+    listen_port = HostPortDescriptor()
 
     def __init__(self):
         # НАСТРОЙКИ ЛОГИРОВАНИЯ
@@ -63,8 +39,9 @@ class Server(Proto):
                               f'Были использованы аргументы из файла settings.ini')
             self.listen_port = int(self.config['DEFAULT_PORT'])
 
-    # СОЗДАЮ ОТВЕТ НА PRESENCE СООБЩЕНИЕ ОТ КЛИЕНТА
     def create_presence_responce(self, message):
+        """:создание ответа сервера на PRESENCE СООБЩЕНИЕ ОТ КЛИЕНТА
+         """
         if self.config['ACTION'] in message \
                 and message[self.config['ACTION']] == actions.PRESENCE \
                 and self.config['TIME'] in message \
@@ -80,6 +57,8 @@ class Server(Proto):
         }
 
     def start_server(self):
+        """:старт сервера
+         """
         transport = socket(AF_INET, SOCK_STREAM)
         transport.bind((self.listen_ip, self.listen_port))
         transport.listen(int(self.config['MAX_CONNECTIONS']))

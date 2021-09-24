@@ -4,7 +4,6 @@ import configparser
 import json
 
 
-
 class Proto:
     """:класс прототип для наследования общих
         методов для сервера и клиента
@@ -12,6 +11,8 @@ class Proto:
     environment_for_settings = 'DEVELOP'
 
     def load_settings(self):
+        """":загрузка конфигов
+        """
         if not os.path.exists('settings.ini'):
             print('Нет файла settings.ini')
             sys.exit(1)
@@ -40,11 +41,15 @@ class Proto:
 
 
     def send_message(self, open_socket, message, encoding):
+        """:отправка сообщения
+        """
         request = json.dumps(message)
         open_socket.send(request.encode(encoding))
 
 
     def get_message(self, open_socket, max_package_lenght, encoding):
+        """:получение и дукодирование сообщения
+        """
         response = open_socket.recv(max_package_lenght)
         if isinstance(response, bytes):
             json_response = response.decode(encoding)
