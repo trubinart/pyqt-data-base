@@ -1,22 +1,28 @@
 import sys
 import socket
 import time
-from moduls import Proto
+from utils.moduls import Proto
 from services import actions
 from socket import *
 import json
 import logging.config
 from threading import Thread
-from descriptors import HostPortDescriptor
-from metaclass import DocMeta
-
+from utils.descriptors import HostPortDescriptor
+from utils.metaclass import DocMeta
+from client_db import ClientDatabase
+import os
+import sys
 
 class Client(Proto, metaclass=DocMeta):
+
+    name = os.path.basename(sys.argv[0]).split('.')[0]
+    database = ClientDatabase(name)
 
     listen_ip = HostPortDescriptor()
     listen_port = HostPortDescriptor()
 
     def __init__(self):
+
         # НАСТРОЙКИ ЛОГИРОВАНИЯ
         logging.config.fileConfig('log/logging.ini',
                                   disable_existing_loggers=False,
@@ -57,7 +63,7 @@ class Client(Proto, metaclass=DocMeta):
     def create_msg(self, message, account_name):
         """:создание обычного СООБЩЕНИЯ
            """
-        message = {
+        message_to_send = {
             self.config['ACTION']: actions.MSQ,
             self.config['TIME']: time.ctime(time.time()),
             self.config['TO']: "#room_name",
@@ -65,7 +71,8 @@ class Client(Proto, metaclass=DocMeta):
             self.config['MESSAGE']: message
         }
         self.logger.info(f'Сформировано msg от клиента')
-        return message
+        self.database.save_message(account_name, message_to_send['to'], message)
+        return message_to_send
 
     def check_responce(self, responce):
         """:проверка ответа от сервера
