@@ -12,16 +12,19 @@ from utils.metaclass import DocMeta
 from client_db import ClientDatabase
 import os
 import sys
+from client.main_window import ClientMainWindow
+from PyQt5.QtWidgets import QApplication
 
-class Client(Proto, metaclass=DocMeta):
-
-    name = os.path.basename(sys.argv[0]).split('.')[0]
-    database = ClientDatabase(name)
+class Client(Thread, Proto, metaclass=DocMeta):
 
     listen_ip = HostPortDescriptor()
     listen_port = HostPortDescriptor()
 
-    def __init__(self):
+    def __init__(self, database, transport, account_name):
+
+        self.database = database
+        self.transport = transport
+        self.account_name = 'artem trubin'
 
         # НАСТРОЙКИ ЛОГИРОВАНИЯ
         logging.config.fileConfig('log/logging.ini',
@@ -46,6 +49,9 @@ class Client(Proto, metaclass=DocMeta):
             self.logger.error(f'listen_port клиента передан не верно. '
                               f'Были использованы аргументы из файла settings.ini')
             self.listen_port = int(self.config['DEFAULT_PORT'])
+
+        # Конструктор предка
+        super(Client, self).__init__()
 
     def create_presence_message(self, account_name):
         """:создание PRESENCE СООБЩЕНИЯ
@@ -104,33 +110,45 @@ class Client(Proto, metaclass=DocMeta):
             self.logger.info(f'Получено сообщение от {msg["from"]} - {msg["message"]}')
             print(msg['message'])
 
-    def start_client(self):
+    def run(self):
         """:запуск клиента
         """
-        transport = socket(AF_INET, SOCK_STREAM)
-        transport.connect((self.listen_ip, self.listen_port))
-        account_name = 'artem trubin'
+        self.transport.connect((self.listen_ip, self.listen_port))
 
         self.logger.info(f'Успешное подключение на клиенте: host {self.listen_ip}, port {self.listen_port}')
 
-        presence_message = self.create_presence_message(account_name)
-        self.send_message(transport, presence_message, self.config['ENCODING'])
+        presence_message = self.create_presence_message(self.account_name)
+        self.send_message(self.transport, presence_message, self.config['ENCODING'])
         self.logger.info(f'Сообщение от клиента отправлено успешно')
 
         try:
-            response = self.get_message(transport, int(self.config['MAX_PACKAGE_LENGTH']), self.config['ENCODING'])
+            response = self.get_message(self.transport, int(self.config['MAX_PACKAGE_LENGTH']), self.config['ENCODING'])
             check = self.check_responce(response)
             self.logger.info(f'Соединение с сервером успешно установлено: ответ {check}')
         except (ValueError, json.JSONDecodeError):
             self.logger.error(f'Ошибка декодирования сообщения', exc_info=True)
 
-        send = Thread(target=self.thread_for_send, kwargs={'transport': transport, 'account_name': account_name})
+        send = Thread(target=self.thread_for_send, kwargs={'transport': self.transport, 'account_name': self.account_name})
         send.start()
 
-        write = Thread(target=self.thread_for_write, kwargs={'transport': transport})
+        write = Thread(target=self.thread_for_write, kwargs={'transport': self.transport})
         write.start()
+
+def start_client_with_gui():
+    account_name = 'artem trubin'
+    transport = socket(AF_INET, SOCK_STREAM)
+    name = os.path.basename(sys.argv[0]).split('.')[0]
+    database = ClientDatabase(name)
+    client = Client(database, transport, account_name)
+    client.daemon = True
+    client.start()
+
+    # Создаём GUI
+    client_app = QApplication(sys.argv)
+    main_window = ClientMainWindow(database, client)
+    main_window.setWindowTitle(f'Чат Программа alpha release - {name}')
+    client_app.exec_()
 
 
 if __name__ == '__main__':
-    client = Client()
-    client.start_client()
+    start_client_with_gui()
