@@ -70,6 +70,9 @@ class MainWindow(QMainWindow):
         # Кнопка вывести историю сообщений
         self.show_history_button = QAction('История клиентов', self)
 
+        # Кнопка регистрации пользователя
+        self.register_btn = QAction('Регистрация пользователя', self)
+
         # Статусбар
         # dock widget
         self.statusBar()
@@ -80,6 +83,7 @@ class MainWindow(QMainWindow):
         self.toolbar.addAction(self.refresh_button)
         self.toolbar.addAction(self.show_history_button)
         self.toolbar.addAction(self.config_btn)
+        self.toolbar.addAction(self.register_btn)
 
         # Настройки геометрии основного окна
         # Поскольку работать с динамическими размерами мы не умеем, и мало времени на изучение, размер окна фиксирован.

@@ -81,6 +81,7 @@ class ClientMainWindow(QMainWindow):
             return
         try:
             msg = self.client.create_msg(message_text, self.client.account_name)
+            print(msg)
             self.client.send_message(self.client.transport, msg, self.client.config['ENCODING'])
             self.client.logger.info(f'Отправлено сообщение серверу {msg["message"]}')
             pass
