@@ -3,9 +3,11 @@ from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, 
 from sqlalchemy.orm import mapper, sessionmaker
 
 class AllUsers:
-    def __init__(self, username):
+    def __init__(self, username,passwd_hash):
         self.name = username
         self.last_login = datetime.datetime.now()
+        self.passwd_hash = passwd_hash
+        self.pubkey = None
         self.id = None
 
 
@@ -44,7 +46,9 @@ class ServerStorage:
         users_table = Table('Users', self.metadata,
                             Column('id', Integer, primary_key=True),
                             Column('name', String, unique=True),
-                            Column('last_login', DateTime)
+                            Column('last_login', DateTime),
+                            Column('passwd_hash', String),
+                            Column('pubkey', Text)
                             )
 
         # Создаём таблицу активных пользователей
@@ -82,6 +86,7 @@ class ServerStorage:
         mapper(LoginHistory, user_login_history)
         mapper(MessageHistory, massage_history_table)
 
+
         # Создаём сессию
         Session = sessionmaker(bind=self.database_engine)
         self.session = Session()
@@ -92,11 +97,12 @@ class ServerStorage:
         self.session.commit()
 
     # Функция выполняющаяся при входе пользователя, записывает в базу факт входа
-    def user_login(self, username, ip_address, port):
+    def user_login(self, username, ip_address, port, pub_key):
         rez = self.session.query(AllUsers).filter_by(name=username)
         if rez.count():
             user = rez.first()
             user.last_login = datetime.datetime.now()
+            user.pubkey = pub_key
         else:
             user = AllUsers(username)
             self.session.add(user)
@@ -155,6 +161,32 @@ class ServerStorage:
         ).join(AllUsers)
         # Возвращаем список кортежей
         return query.all()
+
+    def check_user(self, name):
+        '''Метод проверяющий существование пользователя.'''
+        if self.session.query(AllUsers).filter_by(name=name).count():
+            return True
+        else:
+            return False
+
+    def add_user(self, name, passwd_hash):
+        '''
+        Метод регистрации пользователя.
+        Принимает имя и хэш пароля, создаёт запись в таблице статистики.
+        '''
+        user_row = AllUsers(name, passwd_hash)
+        self.session.add(user_row)
+        self.session.commit()
+
+    def get_hash(self, name):
+        '''Метод получения хэша пароля пользователя.'''
+        user = self.session.query(AllUsers).filter_by(name=name).first()
+        return user.passwd_hash
+
+    def get_keys(self, name):
+        '''Метод получения хэша пароля пользователя.'''
+        user = self.session.query(AllUsers).filter_by(name=name).first()
+        return user.pubkey
 
 if __name__ == '__main__':
     test_db = ServerStorage()
