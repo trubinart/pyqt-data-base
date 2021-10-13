@@ -2,8 +2,13 @@ import datetime
 from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, ForeignKey, DateTime, Text
 from sqlalchemy.orm import mapper, sessionmaker
 
+
 class AllUsers:
-    def __init__(self, username,passwd_hash):
+    '''
+    Класс отображение таблицы всех юзеров
+    '''
+
+    def __init__(self, username, passwd_hash):
         self.name = username
         self.last_login = datetime.datetime.now()
         self.passwd_hash = passwd_hash
@@ -12,6 +17,10 @@ class AllUsers:
 
 
 class ActiveUsers:
+    '''
+    Класс отображение таблицы активных юзеров
+    '''
+
     def __init__(self, user_id, ip_address, port, login_time):
         self.user = user_id
         self.ip_address = ip_address
@@ -21,6 +30,10 @@ class ActiveUsers:
 
 
 class LoginHistory:
+    '''
+    Класс отображение таблицы истории логинов
+    '''
+
     def __init__(self, name, date, ip, port):
         self.id = None
         self.name = name
@@ -28,17 +41,27 @@ class LoginHistory:
         self.ip = ip
         self.port = port
 
-# Класс отображение таблицы истории действий
+
 class MessageHistory:
+    '''
+    Класс отображение таблицы истории действий
+    '''
+
     def __init__(self, user, message):
         self.user = user
         self.message = message
         self.data = datetime.datetime.now()
         self.id = None
 
+
 class ServerStorage:
+    '''
+    Класс создания базы данных сервера
+    '''
+
     def __init__(self):
-        self.database_engine = create_engine('sqlite:///bd_server.db3?check_same_thread=False', echo=False, pool_recycle=7200)
+        self.database_engine = create_engine('sqlite:///bd_server.db3?check_same_thread=False', echo=False,
+                                             pool_recycle=7200)
 
         self.metadata = MetaData()
 
@@ -71,10 +94,10 @@ class ServerStorage:
 
         # Создаём таблицу истории пользователей
         massage_history_table = Table('History', self.metadata,
-                                    Column('id', Integer, primary_key=True),
-                                    Column('user', ForeignKey('Users.id')),
-                                    Column('message', Text),
-                                    Column('data', DateTime))
+                                      Column('id', Integer, primary_key=True),
+                                      Column('user', ForeignKey('Users.id')),
+                                      Column('message', Text),
+                                      Column('data', DateTime))
 
         # Создаём таблицы
         self.metadata.create_all(self.database_engine)
@@ -86,7 +109,6 @@ class ServerStorage:
         mapper(LoginHistory, user_login_history)
         mapper(MessageHistory, massage_history_table)
 
-
         # Создаём сессию
         Session = sessionmaker(bind=self.database_engine)
         self.session = Session()
@@ -96,8 +118,10 @@ class ServerStorage:
         self.session.query(ActiveUsers).delete()
         self.session.commit()
 
-    # Функция выполняющаяся при входе пользователя, записывает в базу факт входа
     def user_login(self, username, ip_address, port, pub_key):
+        '''
+        Функция выполняющаяся при входе пользователя, записывает в базу факт входа
+        '''
         rez = self.session.query(AllUsers).filter_by(name=username)
         if rez.count():
             user = rez.first()
@@ -118,12 +142,17 @@ class ServerStorage:
 
     # Функция фиксирующая отключение пользователя
     def user_logout(self, username):
+        '''
+        Функция фиксирующая отключение пользователя
+        '''
         user = self.session.query(AllUsers).filter_by(name=username).first()
         self.session.query(ActiveUsers).filter_by(user=user.id).delete()
         self.session.commit()
 
-    # Функция возвращающая историю входов по пользователю или всем пользователям
     def login_history(self, username=None):
+        '''
+        Функция возвращающая историю входов по пользователю или всем пользователям
+        '''
         query = self.session.query(AllUsers.name,
                                    LoginHistory.date_time,
                                    LoginHistory.ip,
@@ -133,8 +162,11 @@ class ServerStorage:
             query = query.filter(AllUsers.name == username)
         return query.all()
 
-    # Функция возвращает список активных пользователей
     def active_users_list(self):
+        ''''
+        Функция возвращает список активных пользователей
+        '''
+
         # Запрашиваем соединение таблиц и собираем кортежи имя, адрес, порт, время.
         query = self.session.query(
             AllUsers.name,
@@ -146,13 +178,18 @@ class ServerStorage:
         return query.all()
 
     def write_message_history(self, username, message):
+        ''''
+             Функция записи в БД истории сообщений
+        '''
         user = self.session.query(AllUsers).filter_by(name=username).first()
         new_history_line = MessageHistory(user.id, message)
         self.session.add(new_history_line)
         self.session.commit()
 
-    # Функция возвращает количество переданных и полученных сообщений
     def message_history(self):
+        ''''
+        Функция возвращает количество переданных и полученных сообщений
+        '''
         query = self.session.query(
             AllUsers.name,
             AllUsers.last_login,
@@ -188,10 +225,10 @@ class ServerStorage:
         user = self.session.query(AllUsers).filter_by(name=name).first()
         return user.pubkey
 
+
 if __name__ == '__main__':
     test_db = ServerStorage()
     test_db.user_login('client_1', '192.168.1.4', 7666)
     test_db.write_message_history('client_1', 'mes')
     # test_db.user_logout('client_1')
     print(test_db.message_history())
-

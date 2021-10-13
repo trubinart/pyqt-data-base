@@ -218,6 +218,9 @@ class Server(threading.Thread, Proto, metaclass=DocMeta):
 
 
 def start_server_with_gui():
+    """"
+    создание сервера в gui интерфейсом
+    """
     # Создание экземпляра класса - сервера и его запуск:
     database = ServerStorage()
     server = Server(database)
@@ -234,16 +237,22 @@ def start_server_with_gui():
     main_window.active_clients_table.resizeColumnsToContents()
     main_window.active_clients_table.resizeRowsToContents()
 
-    # Функция обновляющяя список подключённых, проверяет флаг подключения, и
-    # если надо обновляет список
+
     def list_update():
+        '''
+        Функция обновляющяя список подключённых, проверяет флаг подключения,
+        и если надо обновляет список
+        '''
         main_window.active_clients_table.setModel(
             gui_create_model(database))
         main_window.active_clients_table.resizeColumnsToContents()
         main_window.active_clients_table.resizeRowsToContents()
 
-    # Функция создающяя окно со статистикой клиентов
+
     def show_statistics():
+        '''
+        Функция создающяя окно со статистикой клиентов
+        '''
         global stat_window
         stat_window = HistoryWindow()
         stat_window.history_table.setModel(create_stat_model(database))
@@ -251,8 +260,10 @@ def start_server_with_gui():
         stat_window.history_table.resizeRowsToContents()
         stat_window.show()
 
-    # Функция создающяя окно с настройками сервера.
+
     def server_config():
+        '''Функция создающая окно с настройками сервера.
+        '''
         global config_window
         # Создаём окно и заносим в него текущие параметры
         config_window = ConfigWindow()

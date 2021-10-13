@@ -182,6 +182,9 @@ class Client(Thread, Proto, metaclass=DocMeta):
         write.start()
 
 def start_client_with_gui():
+    '''
+    Запуск клиента в GUI
+    '''
     # Создаём GUI
     client_app = QApplication(sys.argv)
 

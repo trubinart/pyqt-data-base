@@ -3,8 +3,11 @@ from sqlalchemy import create_engine, Table, Column, Integer, String, Text, Meta
 from sqlalchemy.orm import mapper, sessionmaker
 
 
-# Класс - отображение таблицы истории сообщений
+
 class MessageHistory:
+    '''
+    Класс - отображение таблицы истории сообщений
+    '''
     def __init__(self, from_user, to_user, message):
         self.id = None
         self.from_user = from_user
@@ -14,6 +17,9 @@ class MessageHistory:
 
 
 class ClientDatabase():
+    '''
+    Класс - создание базы данных клиента
+    '''
     # Конструктор класса:
     def __init__(self, name):
         self.database_engine = create_engine(f'sqlite:///client_{name}.db3?check_same_thread=False', echo=False, pool_recycle=7200,
@@ -43,14 +49,20 @@ class ClientDatabase():
 
         self.session.commit()
 
-    # Функция сохраняющяя сообщения
+
     def save_message(self, from_user, to_user, message):
+        ''''
+        Функция сохраняющая сообщения
+        '''
         message_row = MessageHistory(from_user, to_user, message)
         self.session.add(message_row)
         self.session.commit()
 
-    # Функция возвращающая историю переписки
+
     def get_history(self, from_who=None, to_who=None):
+        '''
+        Функция возвращающая историю переписки
+        '''
         query = self.session.query(MessageHistory)
         if from_who:
             query = query.filter_by(from_user=from_who)

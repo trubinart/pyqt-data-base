@@ -14,8 +14,9 @@ from client.errors import ServerError
 logger = logging.getLogger('client')
 
 
-# Класс основного окна
+
 class ClientMainWindow(QMainWindow):
+    '''Класс основного GUI окна клиента'''
     def __init__(self, database, client):
         super().__init__()
         # основные переменные
